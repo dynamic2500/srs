@@ -80,7 +80,9 @@ string srs_path_build_stream(string template_path, string vhost, string app, str
     path = srs_string_replace(path, "[app]", app);
     // variable [stream]
     path = srs_string_replace(path, "[stream]", stream);
-    
+    // luan patch
+	// variable [realstream]
+    path = srs_string_replace(path, "[realstream]", stream.substr(0,stream.find("@")));
     return path;
 }
 
