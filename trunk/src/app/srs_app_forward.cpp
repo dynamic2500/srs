@@ -206,10 +206,22 @@ srs_error_t SrsForwarder::do_cycle()
     if (true) {
         std::string server;
         int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
-        
+        srs_warn("LuanV: EP_Forward, %s", ep_forward.c_str());
         // parse host:port from hostport.
         srs_parse_hostport(ep_forward, server, port);
         
+		//luan patch
+		size_t pos = ep_forward.find("?");
+		std::string advparam = "";
+		if (pos != std::string::npos) {
+			advparam=ep_forward.substr(pos + 1);
+		}
+		if (advparam!="") {
+			advparam = "&"+srs_string_replace(advparam, "[app]", req->app);
+			if (req->param.find("vhost") == std::string::npos){
+				req->param = req->param+advparam;
+			}
+		}
         // generate url
         url = srs_generate_rtmp_url(server, port, req->host, req->vhost, req->app, req->stream, req->param);
     }
