@@ -206,7 +206,6 @@ srs_error_t SrsForwarder::do_cycle()
     if (true) {
         std::string server;
         int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
-        srs_warn("LuanV: EP_Forward, %s", ep_forward.c_str());
         // parse host:port from hostport.
         srs_parse_hostport(ep_forward, server, port);
         
