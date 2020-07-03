@@ -333,6 +333,8 @@ private:
     SrsRequest* req;
     bool is_active;
 private:
+	//luan patch. store source stream metadata
+	int vbitrate,abitrate,framerate;	
     // The format, codec information.
     SrsRtmpFormat* format;
     // hls handler.

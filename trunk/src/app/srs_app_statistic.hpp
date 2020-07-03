@@ -70,6 +70,10 @@ public:
     int connection_cid;
     int nb_clients;
     uint64_t nb_frames;
+	//luan patch
+	int vbitrate;
+	int abitrate;
+	int framerate;
 public:
     // The stream total kbps.
     SrsKbps* kbps;
@@ -160,6 +164,11 @@ public:
     // When got video info for stream.
     virtual srs_error_t on_video_info(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile,
         SrsAvcLevel avc_level, int width, int height);
+	/** luan patch
+    * when got video info for stream.
+    */
+	virtual srs_error_t on_video_info1(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile,
+        SrsAvcLevel avc_level, int width, int height, int vbitrate, int abitrate, int framerate);
     // When got audio info for stream.
     virtual srs_error_t on_audio_info(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate,
         SrsAudioChannels asound_type, SrsAacObjectType aac_object);

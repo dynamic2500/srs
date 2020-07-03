@@ -122,6 +122,11 @@ SrsStatisticStream::SrsStatisticStream()
     
     nb_clients = 0;
     nb_frames = 0;
+	
+	// luan patch
+	vbitrate=0;
+	abitrate=0;
+	framerate=0;
 }
 
 SrsStatisticStream::~SrsStatisticStream()
@@ -141,12 +146,14 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
     obj->set("live_ms", SrsJsonAny::integer(srsu2ms(srs_get_system_time())));
     obj->set("clients", SrsJsonAny::integer(nb_clients));
     obj->set("frames", SrsJsonAny::integer(nb_frames));
+    obj->set("content_bitrate", SrsJsonAny::integer(vbitrate+abitrate)); 
     obj->set("send_bytes", SrsJsonAny::integer(kbps->get_send_bytes()));
     obj->set("recv_bytes", SrsJsonAny::integer(kbps->get_recv_bytes()));
     
     SrsJsonObject* okbps = SrsJsonAny::object();
     obj->set("kbps", okbps);
     
+    okbps->set("recv", SrsJsonAny::integer(kbps->get_recv_kbps())); // luan patch
     okbps->set("recv_30s", SrsJsonAny::integer(kbps->get_recv_kbps_30s()));
     okbps->set("send_30s", SrsJsonAny::integer(kbps->get_send_kbps_30s()));
     
@@ -167,6 +174,8 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
         video->set("level", SrsJsonAny::str(srs_avc_level2str(avc_level).c_str()));
         video->set("width", SrsJsonAny::integer(width));
         video->set("height", SrsJsonAny::integer(height));
+        video->set("vbitrate", SrsJsonAny::integer(vbitrate));// luan patch
+        video->set("framerate", SrsJsonAny::integer(framerate));// luan patch
     }
     
     if (!has_audio) {
@@ -179,6 +188,7 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
         audio->set("sample_rate", SrsJsonAny::integer(srs_flv_srates[asample_rate]));
         audio->set("channel", SrsJsonAny::integer(asound_type + 1));
         audio->set("profile", SrsJsonAny::str(srs_aac_object2str(aac_object).c_str()));
+        audio->set("abitrate", SrsJsonAny::integer(abitrate));// luan patch
     }
     
     return err;
@@ -341,6 +351,26 @@ srs_error_t SrsStatistic::on_video_info(SrsRequest* req, SrsVideoCodecId vcodec,
     stream->width = width;
     stream->height = height;
     
+    return err;
+}
+// luan patch
+srs_error_t SrsStatistic::on_video_info1(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile, SrsAvcLevel avc_level, int width, int height, int vbitrate, int abitrate, int framerate)
+{
+    srs_error_t err = srs_success;
+    
+    SrsStatisticVhost* vhost = create_vhost(req);
+    SrsStatisticStream* stream = create_stream(vhost, req);
+    
+    stream->has_video = true;
+    stream->vcodec = vcodec;
+    stream->avc_profile = avc_profile;
+    stream->avc_level = avc_level;
+    
+    stream->width = width;
+    stream->height = height;
+    stream->vbitrate = vbitrate;
+    stream->abitrate = abitrate;
+	stream->framerate = framerate;
     return err;
 }
 

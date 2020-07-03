@@ -915,7 +915,17 @@ srs_error_t SrsOriginHub::on_meta_data(SrsSharedPtrMessage* shared_metadata, Srs
     if ((err = format->on_metadata(packet)) != srs_success) {
         return srs_error_wrap(err, "Format parse metadata");
     }
-    
+    //luan patch	
+	SrsAmf0Any* prop = NULL;
+	if ((prop = packet->metadata->ensure_property_number("videodatarate")) != NULL) {
+		vbitrate=(int)prop->to_number();
+    }    
+	if ((prop = packet->metadata->ensure_property_number("audiodatarate")) != NULL) {
+		abitrate=(int)prop->to_number();
+    }	
+	if ((prop = packet->metadata->ensure_property_number("framerate")) != NULL) {
+		framerate=(int)prop->to_number();
+    }
     // copy to all forwarders
     if (true) {
         std::vector<SrsForwarder*>::iterator it;
@@ -1043,7 +1053,7 @@ srs_error_t SrsOriginHub::on_video(SrsSharedPtrMessage* shared_video, bool is_se
         
         // when got video stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((err = stat->on_video_info(req, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level, c->width, c->height)) != srs_success) {
+        if ((err = stat->on_video_info1(req, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level,c->width, c->height, vbitrate, abitrate, framerate)) != srs_success) { //luan patch
             return srs_error_wrap(err, "stat video");
         }
         
@@ -1627,6 +1637,19 @@ srs_error_t SrsMetaCache::update_data(SrsMessageHeader* header, SrsOnMetaDataPac
     if ((prop = metadata->metadata->ensure_property_number("audiocodecid")) != NULL) {
         ss << ", acodec=" << (int)prop->to_number();
     }
+	// luan patch   	
+	if ((prop = metadata->metadata->ensure_property_number("videodatarate")) != NULL) {
+        ss << ", vbitrate=" << (int)prop->to_number();
+		// videodatarate=(int)prop->to_number();
+    }    
+	if ((prop = metadata->metadata->ensure_property_number("audiodatarate")) != NULL) {
+        ss << ", abitrate=" << (int)prop->to_number();
+		// audiodatarate=(int)prop->to_number();
+    }	
+	if ((prop = metadata->metadata->ensure_property_number("framerate")) != NULL) {
+        ss << ", framerate=" << (int)prop->to_number();
+		// framerate=(int)prop->to_number();
+    }
     srs_trace("got metadata%s", ss.str().c_str());
     
     // add server info to metadata
@@ -1911,7 +1934,7 @@ srs_error_t SrsSource::initialize(SrsRequest* r, ISrsSourceHandler* h)
     handler = h;
     req = r->copy();
     atc = _srs_config->get_atc(req->vhost);
-    
+	
     if ((err = hub->initialize(this, req)) != srs_success) {
         return srs_error_wrap(err, "hub");
     }
@@ -2093,7 +2116,6 @@ srs_error_t SrsSource::on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* 
     if (!updated) {
         return err;
     }
-    
     // when already got metadata, drop when reduce sequence header.
     bool drop_for_reduce = false;
     if (meta->data() && _srs_config->get_reduce_sequence_header(req->vhost)) {
