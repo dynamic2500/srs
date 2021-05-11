@@ -464,6 +464,12 @@ private:
     // whether stream is monotonically increase.
     bool is_monotonically_increase;
     int64_t last_packet_time;
+	//luan patch. store source stream metadata
+	int width;
+	int height;
+	int vbitrate;
+	int abitrate;
+	int framerate;
     // hls handler.
 #ifdef SRS_AUTO_HLS
     SrsHls* hls;

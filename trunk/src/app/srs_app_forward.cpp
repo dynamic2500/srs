@@ -44,6 +44,7 @@ using namespace std;
 #include <srs_rtmp_amf0.hpp>
 #include <srs_kernel_codec.hpp>
 #include <srs_core_autofree.hpp>
+#include <srs_kernel_utility.hpp> // luan patch
 
 // when error, forwarder sleep for a while and retry.
 #define SRS_FORWARDER_SLEEP_US (int64_t)(3*1000*1000LL)
@@ -292,7 +293,18 @@ void SrsForwarder::discovery_ep(string& server, string& port, string& tc_url)
         port = _ep_forward.substr(pos + 1);
         server = _ep_forward.substr(0, pos);
     }
-    
+    //luan patch
+		pos = _ep_forward.find("?");
+		std::string advparam = "";
+		if (pos != std::string::npos) {
+			advparam=_ep_forward.substr(pos + 1);
+		}
+		if (advparam!="") {
+			advparam = "&"+srs_string_replace(advparam, "[app]", req->app);
+			if (req->param.find("vhost") == std::string::npos){
+				req->param = req->param+advparam;
+			}
+		}
     // generate tcUrl
     tc_url = srs_generate_tc_url(server, req->vhost, req->app, port, req->param);
 }

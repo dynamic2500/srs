@@ -1506,7 +1506,7 @@ int SrsSource::on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata
 #endif
 
     SrsAmf0Any* prop = NULL;
-    
+
     // when exists the duration, remove it to make ExoPlayer happy.
     if (metadata->metadata->get_property("duration") != NULL) {
         metadata->metadata->remove("duration");
@@ -1525,6 +1525,18 @@ int SrsSource::on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata
     }
     if ((prop = metadata->metadata->ensure_property_number("audiocodecid")) != NULL) {
         ss << ", acodec=" << (int)prop->to_number();
+    }
+	if ((prop = metadata->metadata->ensure_property_number("videodatarate")) != NULL) {
+		vbitrate=(int)prop->to_number();
+		ss << ", vbitrate=" << (int)prop->to_number();
+    }    
+	if ((prop = metadata->metadata->ensure_property_number("audiodatarate")) != NULL) {
+		abitrate=(int)prop->to_number();
+		ss << ", abitrate=" << (int)prop->to_number();
+    }	
+	if ((prop = metadata->metadata->ensure_property_number("framerate")) != NULL) {
+		framerate=(int)prop->to_number();
+		ss << ", framerate=" << (int)prop->to_number();
     }
     srs_trace("got metadata%s", ss.str().c_str());
     
@@ -1923,7 +1935,7 @@ int SrsSource::on_video_imp(SrsSharedPtrMessage* msg)
         
         // when got video stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((ret = stat->on_video_info(_req, SrsCodecVideoAVC, codec.avc_profile, codec.avc_level)) != ERROR_SUCCESS) {
+        if ((ret = stat->on_video_info1(_req, SrsCodecVideoAVC, codec.avc_profile, codec.avc_level,codec.width,codec.height,vbitrate, abitrate, framerate)) != ERROR_SUCCESS) {//luan patch
             return ret;
         }
         

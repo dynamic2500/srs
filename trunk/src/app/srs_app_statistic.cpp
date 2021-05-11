@@ -112,6 +112,12 @@ SrsStatisticStream::SrsStatisticStream()
     
     nb_clients = 0;
     nb_frames = 0;
+	// luan patch
+	width = 0;
+	height = 0;
+	vbitrate=0;
+	abitrate=0;
+	framerate=0;
 }
 
 SrsStatisticStream::~SrsStatisticStream()
@@ -131,9 +137,11 @@ int SrsStatisticStream::dumps(stringstream& ss)
             << SRS_JFIELD_ORG("live_ms", srs_get_system_time_ms()) << SRS_JFIELD_CONT
             << SRS_JFIELD_ORG("clients", nb_clients) << SRS_JFIELD_CONT
             << SRS_JFIELD_ORG("frames", nb_frames) << SRS_JFIELD_CONT
+            << SRS_JFIELD_ORG("content_bitrate", vbitrate+abitrate) << SRS_JFIELD_CONT
             << SRS_JFIELD_ORG("send_bytes", kbps->get_send_bytes()) << SRS_JFIELD_CONT
             << SRS_JFIELD_ORG("recv_bytes", kbps->get_recv_bytes()) << SRS_JFIELD_CONT
             << SRS_JFIELD_OBJ("kbps")
+                << SRS_JFIELD_ORG("recv", kbps->get_recv_kbps()) << SRS_JFIELD_CONT
                 << SRS_JFIELD_ORG("recv_30s", kbps->get_recv_kbps_30s()) << SRS_JFIELD_CONT
                 << SRS_JFIELD_ORG("send_30s", kbps->get_send_kbps_30s())
             << SRS_JOBJECT_END << SRS_JFIELD_CONT
@@ -148,7 +156,12 @@ int SrsStatisticStream::dumps(stringstream& ss)
         ss  << SRS_JFIELD_NAME("video") << SRS_JOBJECT_START
                 << SRS_JFIELD_STR("codec", srs_codec_video2str(vcodec)) << SRS_JFIELD_CONT
                 << SRS_JFIELD_STR("profile", srs_codec_avc_profile2str(avc_profile)) << SRS_JFIELD_CONT
-                << SRS_JFIELD_STR("level", srs_codec_avc_level2str(avc_level))
+                << SRS_JFIELD_STR("level", srs_codec_avc_level2str(avc_level)) << SRS_JFIELD_CONT
+				//luan patch
+                << SRS_JFIELD_ORG("height", height) << SRS_JFIELD_CONT
+                << SRS_JFIELD_ORG("width", width) << SRS_JFIELD_CONT
+                << SRS_JFIELD_ORG("vbitrate", vbitrate) << SRS_JFIELD_CONT
+                << SRS_JFIELD_ORG("framerate", framerate)
                 << SRS_JOBJECT_END
             << SRS_JFIELD_CONT;
     }
@@ -160,6 +173,7 @@ int SrsStatisticStream::dumps(stringstream& ss)
                 << SRS_JFIELD_STR("codec", srs_codec_audio2str(acodec)) << SRS_JFIELD_CONT
                 << SRS_JFIELD_ORG("sample_rate", (int)flv_sample_rates[asample_rate]) << SRS_JFIELD_CONT
                 << SRS_JFIELD_ORG("channel", (int)asound_type + 1) << SRS_JFIELD_CONT
+				<< SRS_JFIELD_ORG("abitrate", abitrate) << SRS_JFIELD_CONT
                 << SRS_JFIELD_STR("profile", srs_codec_aac_object2str(aac_object))
             << SRS_JOBJECT_END;
     }
@@ -307,6 +321,29 @@ int SrsStatistic::on_video_info(SrsRequest* req,
     stream->vcodec = vcodec;
     stream->avc_profile = avc_profile;
     stream->avc_level = avc_level;
+    
+    return ret;
+}
+
+// luan patch
+int SrsStatistic::on_video_info1(SrsRequest* req, 
+    SrsCodecVideo vcodec, SrsAvcProfile avc_profile, SrsAvcLevel avc_level, int height, int width, int vbitrate, int abitrate, int framerate
+) {
+    int ret = ERROR_SUCCESS;
+    
+    SrsStatisticVhost* vhost = create_vhost(req);
+    SrsStatisticStream* stream = create_stream(vhost, req);
+
+    stream->has_video = true;
+    stream->vcodec = vcodec;
+    stream->avc_profile = avc_profile;
+    stream->avc_level = avc_level;
+	//luan patch
+	stream->height = height;
+	stream->width = width;
+	stream->vbitrate=vbitrate;
+	stream->abitrate=abitrate;
+	stream->framerate=framerate;
     
     return ret;
 }
