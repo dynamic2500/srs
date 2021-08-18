@@ -13,6 +13,7 @@
 /ide/srs_xcode/srs_xcode.xcodeproj/xcuserdata/
 /research/aac/
 /research/api-server/static-dir/mse
+/research/api-server/static-dir/crossdomain.xml
 /research/bat/
 /research/big/
 /research/bitch/
@@ -41,3 +42,4 @@ srs
 *.h264
 *.264
 3rdparty/ffmpeg-4.2-fit
+bug

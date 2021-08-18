@@ -54,6 +54,7 @@ using namespace std;
 #include <srs_kernel_consts.hpp>
 #include <srs_app_thread.hpp>
 #include <srs_app_coworkers.hpp>
+#include <srs_app_latest_version.hpp>
 
 // system interval in srs_utime_t,
 // all resolution times should be times togother,
@@ -623,6 +624,7 @@ SrsServer::SrsServer()
     pid_fd = -1;
     
     signal_manager = new SrsSignalManager(this);
+    latest_version_ = new SrsLatestVersion();
     conn_manager = new SrsCoroutineManager();
     
     handler = NULL;
@@ -659,6 +661,7 @@ void SrsServer::destroy()
     }
     
     srs_freep(signal_manager);
+    srs_freep(latest_version_);
     srs_freep(conn_manager);
 }
 
@@ -769,18 +772,6 @@ srs_error_t SrsServer::initialize_st()
     if ((err = srs_st_init()) != srs_success) {
         return srs_error_wrap(err, "initialize st failed");
     }
-
-    // @remark, st alloc segment use mmap, which only support 32757 threads,
-    // if need to support more, for instance, 100k threads, define the macro MALLOC_STACK.
-    // TODO: FIXME: maybe can use "sysctl vm.max_map_count" to refine.
-#define __MMAP_MAX_CONNECTIONS 32756
-    if (_srs_config->get_max_connections() > __MMAP_MAX_CONNECTIONS) {
-        srs_error("st mmap for stack allocation must <= %d threads, "
-                  "@see Makefile of st for MALLOC_STACK, please build st manually by "
-                  "\"make EXTRA_CFLAGS=-DMALLOC_STACK linux-debug\"", __MMAP_MAX_CONNECTIONS);
-        return srs_error_new(ERROR_ST_EXCEED_THREADS, "%d exceed max %d threads",
-            _srs_config->get_max_connections(), __MMAP_MAX_CONNECTIONS);
-    }
     
     // set current log id.
     _srs_context->generate_id();
@@ -799,7 +790,18 @@ srs_error_t SrsServer::initialize_st()
 
 srs_error_t SrsServer::initialize_signal()
 {
-    return signal_manager->initialize();
+    srs_error_t err = srs_success;
+
+    if ((err = signal_manager->initialize()) != srs_success) {
+        return srs_error_wrap(err, "init signal manager");
+    }
+
+    // Start the version query coroutine.
+    if ((err = latest_version_->start()) != srs_success) {
+        return srs_error_wrap(err, "start version query");
+    }
+
+    return err;
 }
 
 srs_error_t SrsServer::acquire_pid_file()
@@ -1489,7 +1491,7 @@ void SrsServer::remove(ISrsConnection* c)
     
     SrsStatistic* stat = SrsStatistic::instance();
     stat->kbps_add_delta(conn);
-    stat->on_disconnect(conn->srs_id());
+    stat->on_disconnect(srs_int2str(conn->srs_id()));
     
     // use manager to free it async.
     conn_manager->remove(c);

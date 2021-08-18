@@ -64,7 +64,7 @@ using namespace std;
 // the time to cleanup source.
 #define SRS_SOURCE_CLEANUP (30 * SRS_UTIME_SECONDS)
 
-int _srs_time_jitter_string2int(std::string time_jitter)
+int srs_time_jitter_string2int(std::string time_jitter)
 {
     if (time_jitter == "full") {
         return SrsRtmpJitterAlgorithmFULL;
@@ -515,7 +515,7 @@ srs_error_t SrsConsumer::dump_packets(SrsMessageArray* msgs, int& count)
     count = 0;
     
     if (should_update_source_id) {
-        srs_trace("update source_id=%d[%d]", source->source_id(), source->source_id());
+        srs_trace("update source_id=%d/%d", source->source_id(), source->pre_source_id());
         should_update_source_id = false;
     }
     
@@ -1847,7 +1847,7 @@ SrsSource::SrsSource()
     mix_queue = new SrsMixQueue();
     
     _can_publish = true;
-    _pre_source_id = _source_id = -1;
+    _pre_source_id = _source_id = 0;
     die_at = 0;
     
     play_edge = new SrsPlayEdge();
@@ -2045,13 +2045,10 @@ srs_error_t SrsSource::on_source_id_changed(int id)
     if (_source_id == id) {
         return err;
     }
-    
-    if (_pre_source_id == -1) {
+
+    if (!_pre_source_id) {
         _pre_source_id = id;
-    } else if (_pre_source_id != _source_id) {
-        _pre_source_id = _source_id;
     }
-    
     _source_id = id;
     
     // notice all consumer
@@ -2489,7 +2486,7 @@ srs_error_t SrsSource::on_publish()
         return srs_error_wrap(err, "handle publish");
     }
     SrsStatistic* stat = SrsStatistic::instance();
-    stat->on_stream_publish(req, _source_id);
+    stat->on_stream_publish(req, srs_int2str(_source_id));
     
     return err;
 }
@@ -2517,7 +2514,10 @@ void SrsSource::on_unpublish()
     srs_trace("cleanup when unpublish");
     
     _can_publish = true;
-    _source_id = -1;
+    if (_source_id) {
+        _pre_source_id = _source_id;
+    }
+    _source_id = 0;
     
     // notify the handler.
     srs_assert(handler);

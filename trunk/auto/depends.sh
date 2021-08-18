@@ -316,6 +316,8 @@ if [ $SRS_EXPORT_LIBRTMP_PROJECT = NO ]; then
     if [[ $SRS_OSX == YES ]]; then
         _ST_MAKE=darwin-debug && _ST_EXTRA_CFLAGS="-DMD_HAVE_KQUEUE" && _ST_LD=${SRS_TOOL_CC} && _ST_OBJ="DARWIN_*"
     fi
+    # Always alloc on heap, @see https://github.com/ossrs/srs/issues/509#issuecomment-719931676
+    _ST_EXTRA_CFLAGS="$_ST_EXTRA_CFLAGS -DMALLOC_STACK"
     # Pass the global extra flags.
     if [[ $SRS_EXTRA_FLAGS != '' ]]; then
       _ST_EXTRA_CFLAGS="$_ST_EXTRA_CFLAGS $SRS_EXTRA_FLAGS"
@@ -386,13 +388,19 @@ if [ $SRS_EXPORT_LIBRTMP_PROJECT = NO ]; then
 
     # copy players to nginx html dir.
     rm -rf ${SRS_OBJS}/nginx/html/players &&
-    ln -sf `pwd`/research/players ${SRS_OBJS}/nginx/html/players &&
-    rm -f ${SRS_OBJS}/nginx/crossdomain.xml &&
-    ln -sf `pwd`/research/players/crossdomain.xml ${SRS_OBJS}/nginx/html/crossdomain.xml
+    ln -sf `pwd`/research/players ${SRS_OBJS}/nginx/html/players
+
+    # For srs-console.
+    rm -rf ${SRS_OBJS}/nginx/html/console &&
+    ln -sf `pwd`/research/console ${SRS_OBJS}/nginx/html/console
 
     # for favicon.ico
     rm -rf ${SRS_OBJS}/nginx/html/favicon.ico &&
     ln -sf `pwd`/research/api-server/static-dir/favicon.ico ${SRS_OBJS}/nginx/html/favicon.ico
+
+    # For home page index.html
+    rm -rf ${SRS_OBJS}/nginx/html/index.html &&
+    ln -sf `pwd`/research/api-server/static-dir/index.html ${SRS_OBJS}/nginx/html/index.html
 
     # nginx.html to detect whether nginx is alive
     echo "Nginx is ok." > ${SRS_OBJS}/nginx/html/nginx.html
@@ -445,13 +453,14 @@ if [[ $SRS_SSL == YES && $SRS_USE_SYS_SSL != YES ]]; then
     # https://stackoverflow.com/questions/15539062/cross-compiling-of-openssl-for-linux-arm-v5te-linux-gnueabi-toolchain
     if [[ $SRS_CROSS_BUILD == YES ]]; then
         OPENSSL_CONFIG="./Configure linux-armv4"
-    else
-        # If not crossbuild, try to use exists libraries.
-        if [[ -f /usr/local/lib64/libssl.a && ! -f ${SRS_OBJS}/${SRS_PLATFORM}/openssl/lib/libssl.a ]]; then
+    elif [[ ! -f ${SRS_OBJS}/${SRS_PLATFORM}/openssl/lib/libssl.a ]]; then
+        # Try to use exists libraries.
+        if [[ -f /usr/local/ssl/lib/libssl.a ]]; then
             (mkdir -p  ${SRS_OBJS}/${SRS_PLATFORM}/openssl/lib && cd ${SRS_OBJS}/${SRS_PLATFORM}/openssl/lib &&
-                ln -sf /usr/local/lib64/libssl.a && ln -sf /usr/local/lib64/libcrypto.a)
+                ln -sf /usr/local/ssl/lib/libssl.a && ln -sf /usr/local/ssl/lib/libcrypto.a &&
+                mkdir -p /usr/local/ssl/lib/pkgconfig && ln -sf /usr/local/ssl/lib/pkgconfig)
             (mkdir -p ${SRS_OBJS}/${SRS_PLATFORM}/openssl/include && cd ${SRS_OBJS}/${SRS_PLATFORM}/openssl/include &&
-                ln -sf /usr/local/include/openssl)
+                ln -sf /usr/local/ssl/include/openssl)
         fi
     fi
     # Which lib we use.
@@ -483,7 +492,7 @@ fi
 # live transcoding, ffmpeg-4.1, x264-core157, lame-3.99.5, libaacplus-2.0.2.
 #####################################################################################
 # Always link the ffmpeg tools if exists.
-if [[ -f /usr/local/bin/ffmpeg && ! -f ${SRS_OBJS}/ffmpeg/bin/ffmpeg ]]; then
+if [[ -f /usr/local/bin/ffmpeg && ! -f ${SRS_OBJS}/${SRS_PLATFORM}/ffmpeg ]]; then
     mkdir -p ${SRS_OBJS}/${SRS_PLATFORM}/ffmpeg/bin &&
     ln -sf /usr/local/bin/ffmpeg ${SRS_OBJS}/${SRS_PLATFORM}/ffmpeg/bin/ffmpeg &&
     (cd ${SRS_OBJS} && rm -rf ffmpeg && ln -sf ${SRS_PLATFORM}/ffmpeg)
@@ -492,11 +501,16 @@ if [ $SRS_FFMPEG_TOOL = YES ]; then
     if [[ -f ${SRS_OBJS}/${SRS_PLATFORM}/ffmpeg/bin/ffmpeg ]]; then
         echo "ffmpeg-4.1 is ok.";
     else
-        echo "no ffmpeg found, please use srs-docker or --without-ffmpeg";
+        echo -e "${RED}Error: No FFmpeg found at /usr/local/bin/ffmpeg${BLACK}"
+        echo -e "${RED}    Please copy it from srs-docker${BLACK}"
+        echo -e "${RED}    or download from http://ffmpeg.org/download.html${BLACK}"
+        echo -e "${RED}    or disable it by --without-ffmpeg${BLACK}"
         exit -1;
     fi
     # Always update the links.
-    (cd ${SRS_OBJS} && rm -rf ffmpeg && ln -sf ${SRS_PLATFORM}/ffmpeg)
+    if [[ -f ${SRS_OBJS}/${SRS_PLATFORM}/ffmpeg ]]; then
+        (cd ${SRS_OBJS} && rm -rf ffmpeg && ln -sf ${SRS_PLATFORM}/ffmpeg)
+    fi
 fi
 
 #####################################################################################

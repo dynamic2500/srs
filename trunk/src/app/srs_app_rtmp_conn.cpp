@@ -502,13 +502,13 @@ srs_error_t SrsRtmpConn::stream_service_cycle()
     
     // update the statistic when source disconveried.
     SrsStatistic* stat = SrsStatistic::instance();
-    if ((err = stat->on_client(_srs_context->get_id(), req, this, info->type)) != srs_success) {
+    if ((err = stat->on_client(srs_int2str(_srs_context->get_id()), req, this, info->type)) != srs_success) {
         return srs_error_wrap(err, "rtmp: stat client");
     }
     
     bool enabled_cache = _srs_config->get_gop_cache(req->vhost);
-    srs_trace("source url=%s, ip=%s, cache=%d, is_edge=%d, source_id=%d[%d]",
-        req->get_stream_url().c_str(), ip.c_str(), enabled_cache, info->edge, source->source_id(), source->source_id());
+    srs_trace("source url=%s, ip=%s, cache=%d, is_edge=%d, source_id=%d/%d",
+        req->get_stream_url().c_str(), ip.c_str(), enabled_cache, info->edge, source->source_id(), source->pre_source_id());
     source->set_cache(enabled_cache);
     
     switch (info->type) {

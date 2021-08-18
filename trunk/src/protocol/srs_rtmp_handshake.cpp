@@ -34,7 +34,7 @@
 #include <srs_kernel_buffer.hpp>
 #include <srs_kernel_utility.hpp>
 
-using namespace _srs_internal;
+using namespace srs_internal;
 
 // for openssl_HMACsha256
 #include <openssl/evp.h>
@@ -111,7 +111,7 @@ static int DH_set_length(DH *dh, long length)
 
 #endif
 
-namespace _srs_internal
+namespace srs_internal
 {
     // 68bytes FMS key which is used to sign the sever packet.
     uint8_t SrsGenuineFMSKey[] = {
@@ -357,7 +357,7 @@ namespace _srs_internal
     
     key_block::key_block()
     {
-        offset = (int32_t)rand();
+        offset = (int32_t)srs_random();
         random0 = NULL;
         random1 = NULL;
         
@@ -439,7 +439,7 @@ namespace _srs_internal
     
     digest_block::digest_block()
     {
-        offset = (int32_t)rand();
+        offset = (int32_t)srs_random();
         random0 = NULL;
         random1 = NULL;
         

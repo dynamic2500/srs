@@ -75,7 +75,7 @@ SrsBufferCache::~SrsBufferCache()
     srs_freep(req);
 }
 
-srs_error_t SrsBufferCache::update(SrsSource* s, SrsRequest* r)
+srs_error_t SrsBufferCache::update_auth(SrsSource* s, SrsRequest* r)
 {
     srs_freep(req);
     req = r->copy();
@@ -523,7 +523,7 @@ SrsLiveStream::~SrsLiveStream()
     srs_freep(req);
 }
 
-srs_error_t SrsLiveStream::update(SrsSource* s, SrsRequest* r)
+srs_error_t SrsLiveStream::update_auth(SrsSource* s, SrsRequest* r)
 {
     source = s;
     
@@ -600,7 +600,7 @@ srs_error_t SrsLiveStream::do_serve_http(ISrsHttpResponseWriter* w, ISrsHttpMess
     
     // update the statistic when source disconveried.
     SrsStatistic* stat = SrsStatistic::instance();
-    if ((err = stat->on_client(_srs_context->get_id(), req, hc, SrsRtmpConnPlay)) != srs_success) {
+    if ((err = stat->on_client(srs_int2str(_srs_context->get_id()), req, hc, SrsRtmpConnPlay)) != srs_success) {
         return srs_error_wrap(err, "stat on client");
     }
     
@@ -938,9 +938,10 @@ srs_error_t SrsHttpStreamServer::http_mount(SrsSource* s, SrsRequest* r)
         }
         srs_trace("http: mount flv stream for sid=%s, mount=%s", sid.c_str(), mount.c_str());
     } else {
+        // The entry exists, we reuse it and update the request of stream and cache.
         entry = sflvs[sid];
-        entry->stream->update(s, r);
-        entry->cache->update(s, r);
+        entry->stream->update_auth(s, r);
+        entry->cache->update_auth(s, r);
     }
     
     if (entry->stream) {
@@ -1132,8 +1133,8 @@ srs_error_t SrsHttpStreamServer::hijack(ISrsHttpMessage* request, ISrsHttpHandle
     
     // trigger edge to fetch from origin.
     bool vhost_is_edge = _srs_config->get_vhost_is_edge(r->vhost);
-    srs_trace("flv: source url=%s, is_edge=%d, source_id=%d[%d]",
-        r->get_stream_url().c_str(), vhost_is_edge, s->source_id(), s->source_id());
+    srs_trace("flv: source url=%s, is_edge=%d, source_id=%d/%d",
+        r->get_stream_url().c_str(), vhost_is_edge, s->source_id(), s->pre_source_id());
     
     return err;
 }

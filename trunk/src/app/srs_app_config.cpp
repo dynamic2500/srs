@@ -53,7 +53,7 @@ using namespace std;
 #include <srs_kernel_utility.hpp>
 #include <srs_rtmp_stack.hpp>
 
-using namespace _srs_internal;
+using namespace srs_internal;
 
 // @global the version to identify the core.
 const char* _srs_version = "XCORE-" RTMP_SIG_SRS_SERVER;
@@ -88,7 +88,7 @@ bool is_common_space(char ch)
     return (ch == ' ' || ch == '\t' || ch == SRS_CR || ch == SRS_LF);
 }
 
-namespace _srs_internal
+namespace srs_internal
 {
     SrsConfigBuffer::SrsConfigBuffer()
     {
@@ -1940,9 +1940,8 @@ srs_error_t SrsConfig::parse_options(int argc, char** argv)
             return srs_error_new(ERROR_SYSTEM_CONFIG_INVALID, "no log file");
         }
         if (get_log_tank_file()) {
-            srs_trace("write log to file %s", log_filename.c_str());
-            srs_trace("you can: tailf %s", log_filename.c_str());
-            srs_trace("@see: %s", SRS_WIKI_URL_LOG);
+            srs_trace("you can check log by: tail -f %s (@see %s)", log_filename.c_str(), SRS_WIKI_URL_LOG);
+            srs_trace("please check SRS by: ./etc/init.d/srs status");
         } else {
             srs_trace("write log to console");
         }
@@ -2159,8 +2158,11 @@ srs_error_t SrsConfig::global_to_json(SrsJsonObject* obj)
         SrsJsonObject* sobj = SrsJsonAny::object();
         sobjs->set(dir->arg0(), sobj);
         
-        SrsStatisticVhost* svhost = stat->find_vhost(dir->arg0());
-        sobj->set("id", SrsJsonAny::integer(svhost? (double)svhost->id : 0));
+        SrsStatisticVhost* svhost = stat->find_vhost_by_name(dir->arg0());
+        if (!svhost) {
+            continue;
+        }
+        sobj->set("id", SrsJsonAny::str(svhost->id.c_str()));
         sobj->set("name", dir->dumps_arg0_to_str());
         sobj->set("enabled", SrsJsonAny::boolean(get_vhost_enabled(dir->arg0())));
         
@@ -2284,8 +2286,11 @@ srs_error_t SrsConfig::vhost_to_json(SrsConfDirective* vhost, SrsJsonObject* obj
     // always present in vhost.
     SrsStatistic* stat = SrsStatistic::instance();
     
-    SrsStatisticVhost* svhost = stat->find_vhost(vhost->arg0());
-    obj->set("id", SrsJsonAny::integer(svhost? (double)svhost->id : 0));
+    SrsStatisticVhost* svhost = stat->find_vhost_by_name(vhost->arg0());
+    if (!svhost) {
+        return err;
+    }
+    obj->set("id", SrsJsonAny::str(svhost->id.c_str()));
     
     obj->set("name", vhost->dumps_arg0_to_str());
     obj->set("enabled", SrsJsonAny::boolean(get_vhost_enabled(vhost)));
@@ -3618,9 +3623,8 @@ srs_error_t SrsConfig::check_normal_config()
             return srs_error_new(ERROR_SYSTEM_CONFIG_INVALID, "log file is empty");
         }
         if (get_log_tank_file()) {
-            srs_trace("write log to file %s", log_filename.c_str());
-            srs_trace("you can: tailf %s", log_filename.c_str());
-            srs_trace("@see: %s", SRS_WIKI_URL_LOG);
+            srs_trace("you can check log by: tail -f %s (@see %s)", log_filename.c_str(), SRS_WIKI_URL_LOG);
+            srs_trace("please check SRS by: ./etc/init.d/srs status");
         } else {
             srs_trace("write log to console");
         }
@@ -3792,7 +3796,7 @@ srs_error_t SrsConfig::check_normal_config()
                                 && e != "acodec" && e != "abitrate" && e != "asample_rate" && e != "achannels"
                                 && e != "aparams" && e != "output" && e != "perfile"
                                 && e != "iformat" && e != "oformat") {
-                                return srs_error_new(ERROR_SYSTEM_CONFIG_INVALID, "illegal vhost.transcode.engine.%s of %s", m.c_str(), vhost->arg0().c_str());
+                                return srs_error_new(ERROR_SYSTEM_CONFIG_INVALID, "illegal vhost.transcode.engine.%s of %s", e.c_str(), vhost->arg0().c_str());
                             }
                         }
                     }
@@ -4050,6 +4054,18 @@ bool SrsConfig::get_asprocess()
     }
     
     return SRS_CONF_PERFER_FALSE(conf->arg0());
+}
+
+bool SrsConfig::whether_query_latest_version()
+{
+    static bool DEFAULT = true;
+
+    SrsConfDirective* conf = root->get("query_latest_version");
+    if (!conf) {
+        return DEFAULT;
+    }
+
+    return SRS_CONF_PERFER_TRUE(conf->arg0());
 }
 
 bool SrsConfig::empty_ip_ok()
@@ -4406,20 +4422,20 @@ int SrsConfig::get_time_jitter(string vhost)
     
     SrsConfDirective* conf = get_vhost(vhost);
     if (!conf) {
-        return _srs_time_jitter_string2int(DEFAULT);
+        return srs_time_jitter_string2int(DEFAULT);
     }
     
     conf = conf->get("play");
     if (!conf) {
-        return _srs_time_jitter_string2int(DEFAULT);
+        return srs_time_jitter_string2int(DEFAULT);
     }
     
     conf = conf->get("time_jitter");
     if (!conf || conf->arg0().empty()) {
-        return _srs_time_jitter_string2int(DEFAULT);
+        return srs_time_jitter_string2int(DEFAULT);
     }
     
-    return _srs_time_jitter_string2int(conf->arg0());
+    return srs_time_jitter_string2int(conf->arg0());
 }
 
 bool SrsConfig::get_mix_correct(string vhost)
@@ -6587,15 +6603,15 @@ int SrsConfig::get_dvr_time_jitter(string vhost)
     SrsConfDirective* conf = get_dvr(vhost);
     
     if (!conf) {
-        return _srs_time_jitter_string2int(DEFAULT);
+        return srs_time_jitter_string2int(DEFAULT);
     }
     
     conf = conf->get("time_jitter");
     if (!conf || conf->arg0().empty()) {
-        return _srs_time_jitter_string2int(DEFAULT);
+        return srs_time_jitter_string2int(DEFAULT);
     }
     
-    return _srs_time_jitter_string2int(conf->arg0());
+    return srs_time_jitter_string2int(conf->arg0());
 }
 
 bool SrsConfig::get_http_api_enabled()
