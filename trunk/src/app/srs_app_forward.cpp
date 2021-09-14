@@ -217,9 +217,8 @@ srs_error_t SrsForwarder::do_cycle()
 		}
 		if (advparam!="") {
 			advparam = "&"+srs_string_replace(advparam, "[app]", req->app);
-			if (req->param.find("vhost") == std::string::npos){
-				req->param = req->param+advparam;
-			}
+			advparam = "&"+srs_string_replace(advparam, "[port]", _srs_config->get_http_api_listen());
+			req->param = req->param+advparam;
 		}
         // generate url
         url = srs_generate_rtmp_url(server, port, req->host, req->vhost, req->app, req->stream, req->param);
