@@ -965,7 +965,7 @@ srs_error_t SrsOriginHub::on_audio(SrsSharedPtrMessage* shared_audio)
         
         // when got audio stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((err = stat->on_audio_info(req, SrsAudioCodecIdAAC, c->sound_rate, c->sound_type, c->aac_object)) != srs_success) {
+        if ((err = stat->on_audio_info1(req, SrsAudioCodecIdAAC, c->sound_rate, c->sound_type, c->aac_object,abitrate)) != srs_success) { //luan patch
             return srs_error_wrap(err, "stat audio");
         }
         
@@ -1053,7 +1053,7 @@ srs_error_t SrsOriginHub::on_video(SrsSharedPtrMessage* shared_video, bool is_se
         
         // when got video stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((err = stat->on_video_info1(req, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level,c->width, c->height, vbitrate, abitrate, framerate)) != srs_success) { //luan patch
+        if ((err = stat->on_video_info1(req, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level,c->width, c->height, vbitrate, framerate)) != srs_success) { //luan patch
             return srs_error_wrap(err, "stat video");
         }
         

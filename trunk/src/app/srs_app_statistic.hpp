@@ -168,10 +168,12 @@ public:
     * when got video info for stream.
     */
 	virtual srs_error_t on_video_info1(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile,
-        SrsAvcLevel avc_level, int width, int height, int vbitrate, int abitrate, int framerate);
+        SrsAvcLevel avc_level, int width, int height, int vbitrate, int framerate); //luan patch
     // When got audio info for stream.
     virtual srs_error_t on_audio_info(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate,
         SrsAudioChannels asound_type, SrsAacObjectType aac_object);
+	virtual srs_error_t on_audio_info1(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate,
+        SrsAudioChannels asound_type, SrsAacObjectType aac_object, int abitrate); //luan patch
     // When got videos, update the frames.
     // We only stat the total number of video frames.
     virtual srs_error_t on_video_frames(SrsRequest* req, int nb_frames);
