@@ -212,6 +212,7 @@ void SrsNgExec::show_exec_log_message()
 
 string SrsNgExec::parse(SrsRequest* req, string tmpl)
 {
+    vector<string> ports = _srs_config->get_listens();
     string output = tmpl;
     
     output = srs_string_replace(output, "[vhost]", req->vhost);
@@ -222,6 +223,7 @@ string SrsNgExec::parse(SrsRequest* req, string tmpl)
     output = srs_string_replace(output, "[tcUrl]", req->tcUrl);
     output = srs_string_replace(output, "[swfUrl]", req->swfUrl);
     output = srs_string_replace(output, "[pageUrl]", req->pageUrl);
+    output = srs_string_replace(output, "[serverPort]", ports[0]);
 
     output = srs_path_build_timestamp(output);
     
