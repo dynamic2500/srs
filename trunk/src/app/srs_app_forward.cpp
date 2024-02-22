@@ -206,7 +206,17 @@ srs_error_t SrsForwarder::do_cycle()
         
         // parse host:port from hostport.
         srs_parse_hostport(ep_forward, server, port);
-        
+        // add vhost param in Forward endpoint into publish URL
+        size_t pos = ep_forward.find("?");
+		std::string advparam = "";
+		if (pos != std::string::npos) {
+			advparam=ep_forward.substr(pos + 1);
+		}
+		if (advparam!="") {
+			advparam = "&"+srs_string_replace(advparam, "[app]", req->app);
+			advparam = "&"+srs_string_replace(advparam, "[apiIpPort]", _srs_config->get_http_api_listen());
+			req->param = req->param+advparam;
+		}
         // generate url
         url = srs_generate_rtmp_url(server, port, req->host, req->vhost, req->app, req->stream, req->param);
     }
