@@ -98,6 +98,10 @@ SrsStatisticStream::SrsStatisticStream()
 
     nb_clients = 0;
     frames = new SrsPps();
+    // init value for stats
+	vbitrate=0;
+	abitrate=0;
+	framerate=0;
 }
 
 SrsStatisticStream::~SrsStatisticStream()
@@ -119,12 +123,14 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
     obj->set("live_ms", SrsJsonAny::integer(srsu2ms(srs_get_system_time())));
     obj->set("clients", SrsJsonAny::integer(nb_clients));
     obj->set("frames", SrsJsonAny::integer(frames->sugar));
+    obj->set("content_bitrate", SrsJsonAny::integer(vbitrate+abitrate)); // total bitrate of media
     obj->set("send_bytes", SrsJsonAny::integer(kbps->get_send_bytes()));
     obj->set("recv_bytes", SrsJsonAny::integer(kbps->get_recv_bytes()));
     
     SrsJsonObject* okbps = SrsJsonAny::object();
     obj->set("kbps", okbps);
     
+    okbps->set("recv", SrsJsonAny::integer(kbps->get_recv_kbps())); // the bit receive per seconds
     okbps->set("recv_30s", SrsJsonAny::integer(kbps->get_recv_kbps_30s()));
     okbps->set("send_30s", SrsJsonAny::integer(kbps->get_send_kbps_30s()));
     
@@ -147,6 +153,8 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
         video->set("level", SrsJsonAny::str(srs_avc_level2str(avc_level).c_str()));
         video->set("width", SrsJsonAny::integer(width));
         video->set("height", SrsJsonAny::integer(height));
+        video->set("vbitrate", SrsJsonAny::integer(vbitrate)); // add vbitrate value to stats
+        video->set("framerate", SrsJsonAny::integer(framerate)); // add framerate value to stats
     }
     
     if (!has_audio) {
@@ -159,6 +167,7 @@ srs_error_t SrsStatisticStream::dumps(SrsJsonObject* obj)
         audio->set("sample_rate", SrsJsonAny::integer(srs_flv_srates[asample_rate]));
         audio->set("channel", SrsJsonAny::integer(asound_type + 1));
         audio->set("profile", SrsJsonAny::str(srs_aac_object2str(aac_object).c_str()));
+        audio->set("abitrate", SrsJsonAny::integer(abitrate));// add abitrate value to stats
     }
     
     return err;
@@ -353,6 +362,26 @@ srs_error_t SrsStatistic::on_video_info(SrsRequest* req, SrsVideoCodecId vcodec,
     return err;
 }
 
+// luan patch
+srs_error_t SrsStatistic::on_video_info_new(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile, SrsAvcLevel avc_level, int width, int height, int vbitrate, int framerate)
+{
+    srs_error_t err = srs_success;
+    
+    SrsStatisticVhost* vhost = create_vhost(req);
+    SrsStatisticStream* stream = create_stream(vhost, req);
+    
+    stream->has_video = true;
+    stream->vcodec = vcodec;
+    stream->avc_profile = avc_profile;
+    stream->avc_level = avc_level;
+    
+    stream->width = width;
+    stream->height = height;
+    stream->vbitrate = vbitrate;
+	stream->framerate = framerate;
+    return err;
+}
+
 srs_error_t SrsStatistic::on_audio_info(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate, SrsAudioChannels asound_type, SrsAacObjectType aac_object)
 {
     srs_error_t err = srs_success;
@@ -365,6 +394,24 @@ srs_error_t SrsStatistic::on_audio_info(SrsRequest* req, SrsAudioCodecId acodec,
     stream->asample_rate = asample_rate;
     stream->asound_type = asound_type;
     stream->aac_object = aac_object;
+    
+    return err;
+}
+
+//luan patch
+srs_error_t SrsStatistic::on_audio_info_new(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate, SrsAudioChannels asound_type, SrsAacObjectType aac_object,int abitrate)
+{
+    srs_error_t err = srs_success;
+    
+    SrsStatisticVhost* vhost = create_vhost(req);
+    SrsStatisticStream* stream = create_stream(vhost, req);
+    
+    stream->has_audio = true;
+    stream->acodec = acodec;
+    stream->asample_rate = asample_rate;
+    stream->asound_type = asound_type;
+    stream->aac_object = aac_object;
+	stream->abitrate = abitrate;
     
     return err;
 }

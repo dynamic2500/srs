@@ -318,6 +318,8 @@ private:
     SrsRequest* req_;
     bool is_active;
 private:
+    //store source stream metadata
+	int vbitrate,abitrate,framerate;
     // hls handler.
     SrsHls* hls;
     // The DASH encoder.

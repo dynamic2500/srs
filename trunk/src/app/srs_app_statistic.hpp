@@ -58,6 +58,10 @@ public:
     // The publisher connection id.
     std::string publisher_id;
     int nb_clients;
+    //new stats value
+	int vbitrate;
+	int abitrate;
+	int framerate;
 public:
     // The stream total kbps.
     SrsKbps* kbps;
@@ -163,9 +167,15 @@ public:
     // When got video info for stream.
     virtual srs_error_t on_video_info(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile,
         SrsAvcLevel avc_level, int width, int height);
+    // New function to add more media prop values to stats
+	virtual srs_error_t on_video_info_new(SrsRequest* req, SrsVideoCodecId vcodec, SrsAvcProfile avc_profile,
+        SrsAvcLevel avc_level, int width, int height, int vbitrate, int framerate);
     // When got audio info for stream.
     virtual srs_error_t on_audio_info(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate,
         SrsAudioChannels asound_type, SrsAacObjectType aac_object);
+    // New function to add more media prop values to stats
+    virtual srs_error_t on_audio_info_new(SrsRequest* req, SrsAudioCodecId acodec, SrsAudioSampleRate asample_rate,
+        SrsAudioChannels asound_type, SrsAacObjectType aac_object, int abitrate); 
     // When got videos, update the frames.
     // We only stat the total number of video frames.
     virtual srs_error_t on_video_frames(SrsRequest* req, int nb_frames);

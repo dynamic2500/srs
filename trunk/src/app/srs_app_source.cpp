@@ -910,7 +910,17 @@ bool SrsOriginHub::active()
 srs_error_t SrsOriginHub::on_meta_data(SrsSharedPtrMessage* shared_metadata, SrsOnMetaDataPacket* packet)
 {
     srs_error_t err = srs_success;
-    
+    //Get media prop value	
+	SrsAmf0Any* prop = NULL;
+	if ((prop = packet->metadata->ensure_property_number("videodatarate")) != NULL) {
+		vbitrate=(int)prop->to_number();
+    }    
+	if ((prop = packet->metadata->ensure_property_number("audiodatarate")) != NULL) {
+		abitrate=(int)prop->to_number();
+    }	
+	if ((prop = packet->metadata->ensure_property_number("framerate")) != NULL) {
+		framerate=(int)prop->to_number();
+    }
     // copy to all forwarders
     if (true) {
         std::vector<SrsForwarder*>::iterator it;
@@ -946,7 +956,7 @@ srs_error_t SrsOriginHub::on_audio(SrsSharedPtrMessage* shared_audio)
         
         // when got audio stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((err = stat->on_audio_info(req_, format->acodec->id, c->sound_rate, c->sound_type, c->aac_object)) != srs_success) {
+        if ((err = stat->on_audio_info_new(req_, format->acodec->id, c->sound_rate, c->sound_type, c->aac_object, abitrate)) != srs_success) {
             return srs_error_wrap(err, "stat audio");
         }
 
@@ -1031,7 +1041,7 @@ srs_error_t SrsOriginHub::on_video(SrsSharedPtrMessage* shared_video, bool is_se
         
         // when got video stream info.
         SrsStatistic* stat = SrsStatistic::instance();
-        if ((err = stat->on_video_info(req_, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level, c->width, c->height)) != srs_success) {
+        if ((err = stat->on_video_info_new(req_, SrsVideoCodecIdAVC, c->avc_profile, c->avc_level, c->width, c->height, vbitrate, framerate)) != srs_success) {
             return srs_error_wrap(err, "stat video");
         }
         
@@ -1680,6 +1690,19 @@ srs_error_t SrsMetaCache::update_data(SrsMessageHeader* header, SrsOnMetaDataPac
     }
     if ((prop = metadata->metadata->ensure_property_number("audiocodecid")) != NULL) {
         ss << ", acodec=" << (int)prop->to_number();
+    }
+    // Set media prop value to stats report 	
+	if ((prop = metadata->metadata->ensure_property_number("videodatarate")) != NULL) {
+        ss << ", vbitrate=" << (int)prop->to_number();
+		// videodatarate=(int)prop->to_number();
+    }    
+	if ((prop = metadata->metadata->ensure_property_number("audiodatarate")) != NULL) {
+        ss << ", abitrate=" << (int)prop->to_number();
+		// audiodatarate=(int)prop->to_number();
+    }	
+	if ((prop = metadata->metadata->ensure_property_number("framerate")) != NULL) {
+        ss << ", framerate=" << (int)prop->to_number();
+		// framerate=(int)prop->to_number();
     }
     srs_trace("got metadata%s", ss.str().c_str());
     
