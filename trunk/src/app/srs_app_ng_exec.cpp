@@ -19,6 +19,7 @@ using namespace std;
 #include <srs_kernel_consts.hpp>
 #include <srs_protocol_utility.hpp>
 #include <srs_app_utility.hpp>
+#include <srs_app_statistic.hpp>
 
 SrsNgExec::SrsNgExec()
 {
@@ -213,6 +214,15 @@ string SrsNgExec::parse(SrsRequest* req, string tmpl)
     if (output.find("[url]") != string::npos) {
         string url = srs_generate_rtmp_url(req->host, req->port, req->host, req->vhost, req->app, req->stream, req->param);
         output = srs_string_replace(output, "[url]", url);
+    }
+    if (output.find("[stream_id]") != string::npos) {
+        SrsStatistic* stat = SrsStatistic::instance();
+        SrsStatisticStream* stream = stat->find_stream_by_url(req->get_stream_url());
+        if (stream) {
+            output = srs_string_replace(output, "[stream_id]", stream->id);
+        } else {
+            output = srs_string_replace(output, "[stream_id]", "");
+        }
     }
     
     return output;
